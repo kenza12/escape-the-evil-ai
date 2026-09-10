@@ -138,9 +138,9 @@ function buildStatusLine(state) {
  */
 function buildScreen(title, story, options, state) {
   return (
-    `You are in the ${title} now.\n` +
-    `${story}\n` +
-    `${buildStatusLine(state)}\n` +
+    `You are in the ${title} now.\n\n` +
+    `${story}\n\n` +
+    `${buildStatusLine(state)}\n\n` +
     "Choose your next step:\n" +
     `${options.join("\n")}`
   );
