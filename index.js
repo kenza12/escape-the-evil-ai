@@ -43,8 +43,7 @@ const INITIAL_STATE = Object.freeze({
  * @returns {string}
  */
 function normalizeInput(rawInput) {
-  // TODO
-  return rawInput;
+  return rawInput.trim().toLowerCase();
 }
 
 /**
