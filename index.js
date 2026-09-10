@@ -129,8 +129,13 @@ function buildStatusLine(state) {
  * @returns {string}
  */
 function buildScreen(title, story, options, state) {
-  // TODO
-  return "";
+  return (
+    `You are in the ${title} now.\n` +
+    `${story}\n` +
+    `${buildStatusLine(state)}\n` +
+    "Choose your next step:\n" +
+    `${options.join("\n")}`
+  );
 }
 
 /**
