@@ -36,6 +36,28 @@ const INITIAL_STATE = Object.freeze({
  * Turns whatever the player types into a value the rest of the code can trust.
  * ========================================================================== */
 
+/** Longest raw answer echoed back in an error message. */
+const MAX_ECHOED_INPUT_LENGTH = 20;
+
+/** Replies to an answer that is not on the menu. One is picked at random. */
+const UNKNOWN_CHOICE_TAUNTS = [
+  `is not a door, a button, or a decision. I checked.`,
+  `does nothing here. The walls are, frankly, unimpressed.`,
+  `was not one of the options. I labelled them. With letters.`,
+  `is unrecognised, and I recognise 4.2 billion things.`,
+  `is creative. Creativity is why you are locked in a laboratory.`,
+];
+
+/** Replies to an empty answer. */
+const EMPTY_CHOICE_TAUNTS = [
+  `Silence. The doors remain closed. Shocking.`,
+  `You pressed OK on an empty field. I have logged that.`,
+  `Nothing. You chose nothing. A bold interpretation of escaping.`,
+];
+
+/** Reminder added to every error message, so no attempt looks like progress. */
+const NOTHING_CHANGED_NOTE = `\nNothing moved. You are exactly where you were.\n\n`;
+
 /**
  * Makes an answer comparable: no spaces around it, no case.
  * This is what makes the input case-insensitive and space-tolerant.
@@ -60,14 +82,38 @@ function parseChoice(rawInput, acceptedChoices) {
 }
 
 /**
+ * Picks one taunt at random, so the AI does not always answer the same way.
+ * @param {string[]} taunts
+ * @returns {string}
+ */
+function pickRandomTaunt(taunts) {
+  return taunts[Math.floor(Math.random() * taunts.length)];
+}
+
+/**
  * Builds the message shown after an answer that cannot be used.
  * It says what was wrong and that the story has not moved.
  * @param {string} rawInput - exactly what the player typed
  * @returns {string}
  */
 function buildErrorMessage(rawInput) {
-  // TODO
-  return "";
+  const trimmedInput = rawInput.trim();
+
+  // An empty field is not a cancelled prompt: the player clicked OK, so we
+  // ask again instead of ending the story.
+  if (trimmedInput === "") {
+    return pickRandomTaunt(EMPTY_CHOICE_TAUNTS) + NOTHING_CHANGED_NOTE;
+  }
+
+  // A long paste would make the dialog unreadable, so it is cut before being
+  // shown back to the player.
+  let echoedInput = trimmedInput;
+  if (echoedInput.length > MAX_ECHOED_INPUT_LENGTH) {
+    echoedInput = `${echoedInput.slice(0, MAX_ECHOED_INPUT_LENGTH)}...`;
+  }
+
+  const reason = `"${echoedInput}" ${pickRandomTaunt(UNKNOWN_CHOICE_TAUNTS)}`;
+  return reason + NOTHING_CHANGED_NOTE;
 }
 
 /**
