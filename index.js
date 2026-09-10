@@ -77,8 +77,26 @@ function buildErrorMessage(rawInput) {
  * @returns {string|null} the chosen letter, or null when the player cancels
  */
 function askChoice(screen, acceptedChoices) {
-  // TODO
-  return null;
+  // Empty on the first try, then filled with the AI's reply to a bad answer.
+  // Putting it on top of the next prompt keeps one dialog per attempt.
+  let errorMessage = "";
+
+  while (true) {
+    const rawInput = prompt(errorMessage + screen);
+
+    // Cancel gives null, an empty field gives "". Checked first: a string
+    // method on null would throw.
+    if (rawInput === null) {
+      return null;
+    }
+
+    const choice = parseChoice(rawInput, acceptedChoices);
+    if (choice !== null) {
+      return choice;
+    }
+
+    errorMessage = buildErrorMessage(rawInput);
+  }
 }
 
 /* ============================================================================
