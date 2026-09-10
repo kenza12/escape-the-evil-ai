@@ -31,6 +31,14 @@ const INITIAL_STATE = Object.freeze({
   hasAccessCard: false,
 });
 
+/**
+ * Readable labels for the state codes.
+ */
+const ITEM_LABELS = {
+  hasSecurityCode: "the security code",
+  hasAccessCard: "an access card",
+};
+
 /* ============================================================================
  * PLAYER INPUT
  * Turns whatever the player types into a value the rest of the code can trust.
@@ -112,8 +120,12 @@ function askChoice(screen, acceptedChoices) {
  * @returns {string}
  */
 function buildStatusLine(state) {
-  // TODO
-  return "";
+  const foundItems = Object.entries(state)
+    .filter((item) => item[1])
+    .map((item) => ITEM_LABELS[item[0]]);
+  return foundItems.length === 0
+    ? "Nothing useful discovered yet."
+    : `Useful discoveries: ${foundItems.join(", ")}.`;
 }
 
 /**
@@ -125,8 +137,13 @@ function buildStatusLine(state) {
  * @returns {string}
  */
 function buildScreen(title, story, options, state) {
-  // TODO
-  return "";
+  return (
+    `You are in the ${title} now.\n` +
+    `${story}\n` +
+    `${buildStatusLine(state)}\n` +
+    "Choose your next step:\n" +
+    `${options.join("\n")}`
+  );
 }
 
 /**
