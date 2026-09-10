@@ -31,6 +31,14 @@ const INITIAL_STATE = Object.freeze({
   hasAccessCard: false,
 });
 
+/**
+ * Readable labels for the state codes.
+ */
+const ITEM_LABELS = {
+  hasSecurityCode: "the security code",
+  hasAccessCard: "an access card",
+};
+
 /* ============================================================================
  * PLAYER INPUT
  * Turns whatever the player types into a value the rest of the code can trust.
@@ -114,10 +122,10 @@ function askChoice(screen, acceptedChoices) {
 function buildStatusLine(state) {
   const foundItems = Object.entries(state)
     .filter((item) => item[1])
-    .map((item) => item[0]);
+    .map((item) => ITEM_LABELS[item[0]]);
   return foundItems.length === 0
     ? "Nothing useful discovered yet."
-    : `Useful discoveries: ${foundItems.join(", ")}`;
+    : `Useful discoveries: ${foundItems.join(", ")}.`;
 }
 
 /**
