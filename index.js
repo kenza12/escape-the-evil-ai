@@ -112,8 +112,12 @@ function askChoice(screen, acceptedChoices) {
  * @returns {string}
  */
 function buildStatusLine(state) {
-  // TODO
-  return "";
+  const foundItems = Object.entries(state)
+    .filter((item) => item[1])
+    .map((item) => item[0]);
+  return foundItems.length === 0
+    ? "Nothing useful discovered yet."
+    : `Useful discoveries: ${foundItems.join(", ")}`;
 }
 
 /**
