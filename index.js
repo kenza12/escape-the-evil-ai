@@ -53,8 +53,10 @@ function normalizeInput(rawInput) {
  * @returns {string|null} the choice, or null when the answer is not on the menu
  */
 function parseChoice(rawInput, acceptedChoices) {
-  // TODO
-  return null;
+  const normalizedInput = normalizeInput(rawInput);
+  return acceptedChoices.indexOf(normalizedInput) === -1
+    ? null
+    : normalizedInput;
 }
 
 /**
