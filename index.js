@@ -222,8 +222,53 @@ function showEnding(ending) {
  * @returns {string|null} next room, or null on Cancel
  */
 function enterControlRoom(state) {
-  // TODO
-  return null;
+  const screen = buildScreen(
+    "ROOM 1 - CONTROL ROOM",
+    `A dark control room. Screens flicker. Somewhere above you, a fan spins.\n\n` +
+      `"Go ahead. Run. I want to see what you choose."`,
+    [
+      "A) Search the computer terminal",
+      "B) Open the maintenance door",
+      "C) Search the room for something useful",
+    ],
+    state
+  );
+
+  const choice = askChoice(screen, ["a", "b", "c"]);
+
+  if (choice === null) {
+    return null;
+  }
+
+  if (choice === "a") {
+    // The code is a one-time discovery: reading the terminal again changes
+    // nothing, so coming back here cannot hand out the same item twice.
+    if (state.hasSecurityCode) {
+      alert(`The same lines scroll past. The code is still ${SECURITY_CODE}.`);
+    } else {
+      state.hasSecurityCode = true;
+      alert(
+        `Between two logs, a security code: ${SECURITY_CODE}.\n\n` +
+          `"...that terminal was supposed to be wiped."`
+      );
+    }
+    return ROOMS.CONTROL;
+  }
+
+  if (choice === "c") {
+    if (state.hasAccessCard) {
+      alert(`You already emptied this room. There is nothing else worth taking.`);
+    } else {
+      state.hasAccessCard = true;
+      alert(
+        `Under a keyboard, an access card.\n\n` +
+          `"Someone left that behind. I will find out who."`
+      );
+    }
+    return ROOMS.CONTROL;
+  }
+
+  return ROOMS.MAINTENANCE;
 }
 
 /**
