@@ -184,9 +184,9 @@ function buildStatusLine(state) {
  */
 function buildScreen(title, story, options, state) {
   return (
-    `You are in the ${title} now.\n` +
-    `${story}\n` +
-    `${buildStatusLine(state)}\n` +
+    `You are in the ${title} now.\n\n` +
+    `${story}\n\n` +
+    `${buildStatusLine(state)}\n\n` +
     "Choose your next step:\n" +
     `${options.join("\n")}`
   );
@@ -278,8 +278,34 @@ function enterControlRoom(state) {
  * @returns {string|null} next room, or null on Cancel
  */
 function enterMaintenance(state) {
-  // TODO
-  return null;
+  const screen = buildScreen(
+    "ROOM 2 - MAINTENANCE CORRIDOR",
+    `The corridor splits in two. Pipes hiss on the left, a sealed door waits ` +
+      `on the right.\n\n"Take your time. I have all of it."`,
+    [
+      "A) Take the left path, to the Power Room",
+      "B) Take the right path, to the Security Room",
+      "C) Walk back to the Control Room",
+    ],
+    state
+  );
+
+  const choice = askChoice(screen, ["a", "b", "c"]);
+
+  if (choice === null) {
+    return null;
+  }
+
+  if (choice === "a") {
+    return ROOMS.POWER;
+  }
+
+  if (choice === "b") {
+    return ROOMS.SECURITY;
+  }
+
+  // Going back is what lets the player pick up an item they walked past.
+  return ROOMS.CONTROL;
 }
 
 /**
