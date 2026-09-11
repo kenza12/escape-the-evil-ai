@@ -427,7 +427,7 @@ function startAdventure() {
     const reachedHistoryEnding = adventure();
 
     playAgain = reachedHistoryEnding
-      && prompt("It's over… but our little contest doesn't have to be." +
+      && confirm("It's over… but our little contest doesn't have to be." +
         " Shall we begin again, human?");
   }
 
