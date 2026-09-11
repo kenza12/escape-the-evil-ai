@@ -420,7 +420,20 @@ function adventure() {
  * to leave, not to be asked again.
  */
 function startAdventure() {
-  // TODO
+
+  let playAgain = true;
+
+  while(playAgain) {
+    const reachedHistoryEnding = adventure();
+
+    playAgain = reachedHistoryEnding
+      && prompt("It's over… but our little contest doesn't have to be." +
+        " Shall we begin again, human?");
+  }
+
+  //show a teasing message if player pressed 'Cancel'
+  alert("Very well, human… leave while you still can. But remember:" +
+    " I'll be waiting when you change your mind.")
 }
 
 startAdventure();
