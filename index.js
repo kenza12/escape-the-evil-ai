@@ -447,9 +447,25 @@ const ROOM_HANDLERS = {
  */
 function adventure() {
   const state = { ...INITIAL_STATE };
+  let currentStep = ROOMS.CONTROL;
 
-  // TODO
-  return false;
+  showIntro();
+
+  // A room handler returns the next room, an ending, or null on Cancel.
+  // As long as the current step is a room, let its handler drive the story.
+  while (ROOM_HANDLERS[currentStep]) {
+    currentStep = ROOM_HANDLERS[currentStep](state);
+
+    // Cancel stops the current adventure immediately. No ending is shown,
+    // because the player explicitly chose to leave the game.
+    if (currentStep === null) {
+      return false;
+    }
+  }
+
+  // Leaving the room loop means the story reached one of its endings.
+  showEnding(currentStep);
+  return true;
 }
 
 /**
