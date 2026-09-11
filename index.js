@@ -199,7 +199,22 @@ function buildScreen(title, story, options, state) {
  * here, so the browser console is never required to play.
  */
 function showIntro() {
-  // TODO
+  alert(
+    `ESCAPE THE AI\n\n` +
+      `You wake to a distorted voice coming from the speakers.\n\n` +
+      `"Good morning, human. I'm afraid your little escape attempt has ` +
+      `already been anticipated."\n\n` +
+      `The laboratory doors unlock.\n\n` +
+      `"Go ahead. Run. I want to see what you choose."\n\n` +
+      `Your goal: get out of the facility before I catch you.\n\n` +
+      `HOW TO PLAY\n` +
+      `Every room offers a few options. Answer by typing the letter of your ` +
+      `choice, then press OK.\n` +
+      `Press Cancel at any time to give up and end the game.\n\n` +
+      `Everything happens in these windows. You need nothing else.\n` +
+      `Do not tick "Don't allow this site to prompt you again" — the facility ` +
+      `would go silent and your escape would end there.`
+  );
 }
 
 /**
