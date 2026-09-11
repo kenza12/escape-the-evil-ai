@@ -392,6 +392,10 @@ function enterSecurityRoom(state) {
 
   if (choice === "a") {
     if (state.hasAccessCard) {
+      alert(
+        "The security card unlocks the door with a soft beep. The lock clicks open," +
+        " revealing a dark passage beyond."
+      );
       return ROOMS.TUNNEL;
     } else {
       alert(
