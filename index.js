@@ -29,7 +29,7 @@ const ENDINGS = {
 const INITIAL_STATE = Object.freeze({
   hasSecurityCode: false,
   hasAccessCard: false,
-  isPowerDabled: false,
+  isPowerDisabled: false,
 });
 
 /**
@@ -38,7 +38,7 @@ const INITIAL_STATE = Object.freeze({
 const ITEM_LABELS = {
   hasSecurityCode: "the security code",
   hasAccessCard: "an access card",
-  isPowerDabled: "you have disabled the power system",
+  isPowerDisabled: "you have disabled the power system",
 };
 
 /* ============================================================================
