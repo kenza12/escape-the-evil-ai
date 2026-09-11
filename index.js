@@ -373,8 +373,42 @@ function enterPowerRoom(state) {
  * @returns {string|null} next room, an ending, or null on Cancel
  */
 function enterSecurityRoom(state) {
-  // TODO
-  return null;
+  const screen = buildScreen(
+    "ROOM 2B — SECURITY DOOR",
+    "A locked security door blocks your path.",
+    [
+      "A) Attempt to open the door",
+      "B) Look around",
+      "C) Leave the door untouched and return to the MAINTENANCE CORRIDOR"
+    ],
+    state,
+  );
+
+  const choice = askChoice(screen, ["a", "b", "c"]);
+
+  if (choice === null) {
+    return null;
+  }
+
+  if (choice === "a") {
+    if (state.hasAccessCard) {
+      return ROOMS.TUNNEL;
+    } else {
+      alert(
+        `"Unauthorized access detected. Thank you for revealing your location."`
+      );
+      return ENDINGS.DEFEAT;
+    }
+  }
+
+  if (choice === "b") {
+    alert(
+      `"You're wasting time, human."`
+    );
+    return ROOMS.SECURITY;
+  }
+
+  return ROOMS.MAINTENANCE;
 }
 
 /**
