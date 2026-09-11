@@ -29,6 +29,7 @@ const ENDINGS = {
 const INITIAL_STATE = Object.freeze({
   hasSecurityCode: false,
   hasAccessCard: false,
+  isPowerDisabled: false,
 });
 
 /**
@@ -37,6 +38,7 @@ const INITIAL_STATE = Object.freeze({
 const ITEM_LABELS = {
   hasSecurityCode: "the security code",
   hasAccessCard: "an access card",
+  isPowerDisabled: "you have disabled the power system",
 };
 
 /* ============================================================================
@@ -162,7 +164,7 @@ function askChoice(screen, acceptedChoices) {
 
 /**
  * Lists what the player has found so far, so they always know what they carry.
- * @param {{hasSecurityCode: boolean, hasAccessCard: boolean}} state
+ * @param {{hasSecurityCode: boolean, hasAccessCard: boolean, isPowerDisabled: boolean}} state
  * @returns {string}
  */
 function buildStatusLine(state) {
@@ -179,7 +181,7 @@ function buildStatusLine(state) {
  * @param {string} title - name of the room
  * @param {string} story - what the player sees there
  * @param {string[]} options - the menu lines, in order
- * @param {{hasSecurityCode: boolean, hasAccessCard: boolean}} state
+ * @param {{hasSecurityCode: boolean, hasAccessCard: boolean, isPowerDisabled: boolean}} state
  * @returns {string}
  */
 function buildScreen(title, story, options, state) {
@@ -218,7 +220,7 @@ function showEnding(ending) {
  * Room 1 - Control Room. Holds both items of the story.
  * A) the terminal gives the security code, B) leaves for the corridor,
  * C) the search gives the access card.
- * @param {{hasSecurityCode: boolean, hasAccessCard: boolean}} state
+ * @param {{hasSecurityCode: boolean, hasAccessCard: boolean, isPowerDisabled: boolean}} state
  * @returns {string|null} next room, or null on Cancel
  */
 function enterControlRoom(state) {
@@ -274,7 +276,7 @@ function enterControlRoom(state) {
 /**
  * Room 2 - Maintenance Corridor. The junction of the story: the player can
  * take either path, or walk back to the control room for a missed item.
- * @param {{hasSecurityCode: boolean, hasAccessCard: boolean}} state
+ * @param {{hasSecurityCode: boolean, hasAccessCard: boolean, isPowerDisabled: boolean}} state
  * @returns {string|null} next room, or null on Cancel
  */
 function enterMaintenance(state) {
@@ -311,18 +313,63 @@ function enterMaintenance(state) {
 /**
  * Room 2A - Power Room. Shutting the AI down opens the way to the tunnel,
  * leaving the power alone sends the player back to the corridor.
- * @param {{hasSecurityCode: boolean, hasAccessCard: boolean}} state
+ * @param {{hasSecurityCode: boolean, hasAccessCard: boolean, isPowerDisabled: boolean}} state
  * @returns {string|null} next room, or null on Cancel
  */
 function enterPowerRoom(state) {
-  // TODO
-  return null;
+  const screen = buildScreen(
+    "ROOM 2A — POWER ROOM",
+    "You enter a dim room filled with humming generators and electrical panels. " +
+      "At the far end, you notice a heavy metal door marked EMERGENCY EXIT.",
+    [
+      "A) Attempt to open the door",
+      "B) Try to disable the power system",
+      "C) Leave everything untouched and walk away",
+    ],
+    state
+  );
+
+  const choice = askChoice(screen, ["a", "b", "c"]);
+
+  if (choice === null) {
+    return null;
+  }
+
+  if (choice === "a") {
+    if (state.isPowerDisabled) {
+      return ROOMS.TUNNEL;
+    } else {
+      alert(
+        "Oh, human… you really thought I would let you leave?" +
+          " That door opens only when I decide you may pass."
+      );
+      return ROOMS.POWER;
+    }
+  }
+
+  if (choice === "b") {
+    if (state.isPowerDisabled) {
+      alert(
+        "The power is already disabled. Nothing happens when you try to disable it again."
+      );
+    } else {
+      state.isPowerDisabled = true;
+      alert(
+        "The lights suddenly die, plunging the room into darkness." +
+          " A loud click echoes through the silence." +
+          "\n\nInteresting… You believe darkness will hide you"
+      );
+    }
+    return ROOMS.POWER;
+  }
+
+  return ROOMS.MAINTENANCE;
 }
 
 /**
  * Room 2B - Security Room. The door only opens with the access card found in
  * the control room; forcing it ends the story.
- * @param {{hasSecurityCode: boolean, hasAccessCard: boolean}} state
+ * @param {{hasSecurityCode: boolean, hasAccessCard: boolean, isPowerDisabled: boolean}} state
  * @returns {string|null} next room, an ending, or null on Cancel
  */
 function enterSecurityRoom(state) {
@@ -333,7 +380,7 @@ function enterSecurityRoom(state) {
 /**
  * Room 3 - Escape Tunnel. The blast door only opens with the security code
  * found in the control room; forcing it ends the story.
- * @param {{hasSecurityCode: boolean, hasAccessCard: boolean}} state
+ * @param {{hasSecurityCode: boolean, hasAccessCard: boolean, isPowerDisabled: boolean}} state
  * @returns {string|null} an ending, or null on Cancel
  */
 function enterEscapeTunnel(state) {
