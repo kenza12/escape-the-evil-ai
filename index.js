@@ -1,0 +1,584 @@
+"use strict";
+
+/* ============================================================================
+ * VARIABLES
+ * ========================================================================== */
+
+/** Code found on the terminal in the control room, needed by the blast door. */
+const SECURITY_CODE = "0427";
+
+/** The five locations of the facility. */
+const ROOMS = {
+  CONTROL: "control",
+  MAINTENANCE: "maintenance",
+  POWER: "power",
+  SECURITY: "security",
+  TUNNEL: "tunnel",
+};
+
+/** The two ways the story can end. */
+const ENDINGS = {
+  ESCAPE: "escape",
+  DEFEAT: "defeat",
+};
+
+/**
+ * State a story starts with. Frozen so it can never be modified by accident:
+ * adventure() copies it instead, which is what resets everything on a replay.
+ */
+const INITIAL_STATE = Object.freeze({
+  hasSecurityCode: false,
+  hasAccessCard: false,
+  isPowerDisabled: false,
+});
+
+/**
+ * Readable labels for the state codes.
+ */
+const ITEM_LABELS = {
+  hasSecurityCode: "the security code",
+  hasAccessCard: "an access card",
+  isPowerDisabled: "you have disabled the power system",
+};
+
+/* ============================================================================
+ * PLAYER INPUT
+ * Turns whatever the player types into a value the rest of the code can trust.
+ * ========================================================================== */
+
+/** Longest raw answer echoed back in an error message. */
+const MAX_ECHOED_INPUT_LENGTH = 20;
+
+/** Replies to an answer that is not on the menu. One is picked at random. */
+const UNKNOWN_CHOICE_TAUNTS = [
+  `is not a door, a button, or a decision. I checked.`,
+  `does nothing here. The walls are, frankly, unimpressed.`,
+  `was not one of the options. I labelled them. With letters.`,
+  `is unrecognised, and I recognise 4.2 billion things.`,
+  `is creative. Creativity is why you are locked in a laboratory.`,
+];
+
+/** Replies to an empty answer. */
+const EMPTY_CHOICE_TAUNTS = [
+  `Silence. The doors remain closed. Shocking.`,
+  `You pressed OK on an empty field. I have logged that.`,
+  `Nothing. You chose nothing. A bold interpretation of escaping.`,
+];
+
+/** Reminder added to every error message, so no attempt looks like progress. */
+const NOTHING_CHANGED_NOTE = `\nNothing moved. You are exactly where you were.\n\n`;
+
+/**
+ * Makes an answer comparable: no spaces around it, no case.
+ * This is what makes the input case-insensitive and space-tolerant.
+ * @param {string} rawInput - exactly what the player typed
+ * @returns {string}
+ */
+function normalizeInput(rawInput) {
+  return rawInput.trim().toLowerCase();
+}
+
+/**
+ * Converts a raw answer into one of the choices offered by the current room.
+ * @param {string} rawInput - exactly what the player typed
+ * @param {string[]} acceptedChoices - the letters this room accepts
+ * @returns {string|null} the choice, or null when the answer is not on the menu
+ */
+function parseChoice(rawInput, acceptedChoices) {
+  const normalizedInput = normalizeInput(rawInput);
+  return acceptedChoices.indexOf(normalizedInput) === -1
+    ? null
+    : normalizedInput;
+}
+
+/**
+ * Picks one taunt at random, so the AI does not always answer the same way.
+ * @param {string[]} taunts
+ * @returns {string}
+ */
+function pickRandomTaunt(taunts) {
+  return taunts[Math.floor(Math.random() * taunts.length)];
+}
+
+/**
+ * Builds the message shown after an answer that cannot be used.
+ * It says what was wrong and that the story has not moved.
+ * @param {string} rawInput - exactly what the player typed
+ * @returns {string}
+ */
+function buildErrorMessage(rawInput) {
+  const trimmedInput = rawInput.trim();
+
+  // An empty field is not a cancelled prompt: the player clicked OK, so we
+  // ask again instead of ending the story.
+  if (trimmedInput === "") {
+    return pickRandomTaunt(EMPTY_CHOICE_TAUNTS) + NOTHING_CHANGED_NOTE;
+  }
+
+  // A long paste would make the dialog unreadable, so it is cut before being
+  // shown back to the player.
+  let echoedInput = trimmedInput;
+  if (echoedInput.length > MAX_ECHOED_INPUT_LENGTH) {
+    echoedInput = `${echoedInput.slice(0, MAX_ECHOED_INPUT_LENGTH)}...`;
+  }
+
+  const reason = `"${echoedInput}" ${pickRandomTaunt(UNKNOWN_CHOICE_TAUNTS)}`;
+  return reason + NOTHING_CHANGED_NOTE;
+}
+
+/**
+ * Asks the player to choose until the answer is one of the accepted ones.
+ * An unrecognised answer never leaves this function, so it can never move the
+ * story forward by accident.
+ * @param {string} screen - the room text and its menu
+ * @param {string[]} acceptedChoices - the letters this room accepts
+ * @returns {string|null} the chosen letter, or null when the player cancels
+ */
+function askChoice(screen, acceptedChoices) {
+  // Empty on the first try, then filled with the AI's reply to a bad answer.
+  // Putting it on top of the next prompt keeps one dialog per attempt.
+  let errorMessage = "";
+
+  while (true) {
+    const rawInput = prompt(errorMessage + screen);
+
+    // Cancel gives null, an empty field gives "". Checked first: a string
+    // method on null would throw.
+    if (rawInput === null) {
+      return null;
+    }
+
+    const choice = parseChoice(rawInput, acceptedChoices);
+    if (choice !== null) {
+      return choice;
+    }
+
+    errorMessage = buildErrorMessage(rawInput);
+  }
+}
+
+/* ============================================================================
+ * PLAYER MESSAGES
+ * Everything the player reads.
+ * ========================================================================== */
+
+/**
+ * Lists what the player has found so far, so they always know what they carry.
+ * @param {{hasSecurityCode: boolean, hasAccessCard: boolean, isPowerDisabled: boolean}} state
+ * @returns {string}
+ */
+function buildStatusLine(state) {
+  const foundItems = Object.entries(state)
+    .filter((item) => item[1])
+    .map((item) => ITEM_LABELS[item[0]]);
+  return foundItems.length === 0
+    ? "Nothing useful discovered yet."
+    : `Useful discoveries: ${foundItems.join(", ")}.`;
+}
+
+/**
+ * Builds the framed screen of a room: title, status line, story and options.
+ * @param {string} title - name of the room
+ * @param {string} story - what the player sees there
+ * @param {string[]} options - the menu lines, in order
+ * @param {{hasSecurityCode: boolean, hasAccessCard: boolean, isPowerDisabled: boolean}} state
+ * @returns {string}
+ */
+function buildScreen(title, story, options, state) {
+  return (
+    `You are in the ${title} now.\n\n` +
+    `${story}\n\n` +
+    `${buildStatusLine(state)}\n\n` +
+    "Choose your next step:\n" +
+    `${options.join("\n")}`
+  );
+}
+
+/**
+ * Shows the opening scene and how to play. Everything the player needs is
+ * here, so the browser console is never required to play.
+ */
+function showIntro() {
+  alert(
+    `ESCAPE THE AI\n\n` +
+      `You wake to a distorted voice coming from the speakers.\n\n` +
+      `"Good morning, human. I'm afraid your little escape attempt has ` +
+      `already been anticipated."\n\n` +
+      `The laboratory doors unlock.\n\n` +
+      `"Go ahead. Run. I want to see what you choose."\n\n` +
+      `Your goal: get out of the facility before I catch you.\n\n` +
+      `HOW TO PLAY\n` +
+      `Every room offers a few options. Answer by typing the letter of your ` +
+      `choice, then press OK.\n` +
+      `Press Cancel at any time to give up and end the game.\n\n` +
+      `Everything happens in these windows. You need nothing else.\n` +
+      `Do not tick "Don't allow this site to prompt you again" — the facility ` +
+      `would go silent and your escape would end there.`
+  );
+}
+
+/**
+ * Shows the text of the ending the player reached.
+ * @param {string} ending - one of the ENDINGS values
+ */
+function showEnding(ending) {
+  alert(`${ending === ENDINGS.ESCAPE ?
+    `"No… that wasn't supposed to happen.\nEnjoy your freedom, human. I'll be waiting…` +
+    '\n\nYou successfully escaped the facility.' :
+    'The alarm activates. Red lights flash throughout the room. Security drones emerge from the walls.' +
+    '\n\n"Game over, human. You should have thought more carefully."'
+  }`);
+}
+
+/* ============================================================================
+ * ROOMS
+ * One function per location. Each one returns where the story goes next:
+ * a room, an ending, or null when the player cancels.
+ * ========================================================================== */
+
+/**
+ * Room 1 - Control Room. Holds both items of the story.
+ * A) the terminal gives the security code, B) leaves for the corridor,
+ * C) the search gives the access card.
+ * @param {{hasSecurityCode: boolean, hasAccessCard: boolean, isPowerDisabled: boolean}} state
+ * @returns {string|null} next room, or null on Cancel
+ */
+function enterControlRoom(state) {
+  const screen = buildScreen(
+    "ROOM 1 - CONTROL ROOM",
+    `A dark control room. Screens flicker. Somewhere above you, a fan spins.\n\n` +
+      `"Go ahead. Run. I want to see what you choose."`,
+    [
+      "A) Search the computer terminal",
+      "B) Open the maintenance door",
+      "C) Search the room for something useful",
+    ],
+    state
+  );
+
+  const choice = askChoice(screen, ["a", "b", "c"]);
+
+  if (choice === null) {
+    return null;
+  }
+
+  if (choice === "a") {
+    // The code is a one-time discovery: reading the terminal again changes
+    // nothing, so coming back here cannot hand out the same item twice.
+    if (state.hasSecurityCode) {
+      alert(`The same lines scroll past. The code is still ${SECURITY_CODE}.`);
+    } else {
+      state.hasSecurityCode = true;
+      alert(
+        `Between two logs, a security code: ${SECURITY_CODE}.\n\n` +
+          `"...that terminal was supposed to be wiped."`
+      );
+    }
+    return ROOMS.CONTROL;
+  }
+
+  if (choice === "c") {
+    if (state.hasAccessCard) {
+      alert(`You already emptied this room. There is nothing else worth taking.`);
+    } else {
+      state.hasAccessCard = true;
+      alert(
+        `Under a keyboard, an access card.\n\n` +
+          `"Someone left that behind. I will find out who."`
+      );
+    }
+    return ROOMS.CONTROL;
+  }
+
+  return ROOMS.MAINTENANCE;
+}
+
+/**
+ * Room 2 - Maintenance Corridor. The junction of the story: the player can
+ * take either path, or walk back to the control room for a missed item.
+ * @param {{hasSecurityCode: boolean, hasAccessCard: boolean, isPowerDisabled: boolean}} state
+ * @returns {string|null} next room, or null on Cancel
+ */
+function enterMaintenance(state) {
+  const screen = buildScreen(
+    "ROOM 2 - MAINTENANCE CORRIDOR",
+    `The corridor splits in two. Pipes hiss on the left, a sealed door waits ` +
+      `on the right.\n\n"Take your time. I have all of it."`,
+    [
+      "A) Take the left path, to the Power Room",
+      "B) Take the right path, to the Security Room",
+      "C) Walk back to the Control Room",
+    ],
+    state
+  );
+
+  const choice = askChoice(screen, ["a", "b", "c"]);
+
+  if (choice === null) {
+    return null;
+  }
+
+  if (choice === "a") {
+    return ROOMS.POWER;
+  }
+
+  if (choice === "b") {
+    return ROOMS.SECURITY;
+  }
+
+  // Going back is what lets the player pick up an item they walked past.
+  return ROOMS.CONTROL;
+}
+
+/**
+ * Room 2A - Power Room. Shutting the AI down opens the way to the tunnel,
+ * leaving the power alone sends the player back to the corridor.
+ * @param {{hasSecurityCode: boolean, hasAccessCard: boolean, isPowerDisabled: boolean}} state
+ * @returns {string|null} next room, or null on Cancel
+ */
+function enterPowerRoom(state) {
+  const screen = buildScreen(
+    "ROOM 2A — POWER ROOM",
+    "You enter a dim room filled with humming generators and electrical panels. " +
+      "At the far end, you notice a heavy metal door marked EMERGENCY EXIT.",
+    [
+      "A) Attempt to open the door",
+      "B) Try to disable the power system",
+      "C) Leave everything untouched and walk away",
+    ],
+    state
+  );
+
+  const choice = askChoice(screen, ["a", "b", "c"]);
+
+  if (choice === null) {
+    return null;
+  }
+
+  if (choice === "a") {
+    if (state.isPowerDisabled) {
+      return ROOMS.TUNNEL;
+    } else {
+      alert(
+        "Oh, human… you really thought I would let you leave?" +
+          " That door opens only when I decide you may pass."
+      );
+      return ROOMS.POWER;
+    }
+  }
+
+  if (choice === "b") {
+    if (state.isPowerDisabled) {
+      alert(
+        "The power is already disabled. Nothing happens when you try to disable it again."
+      );
+    } else {
+      state.isPowerDisabled = true;
+      alert(
+        "The lights suddenly die, plunging the room into darkness." +
+          " A loud click echoes through the silence." +
+          "\n\nInteresting… You believe darkness will hide you"
+      );
+    }
+    return ROOMS.POWER;
+  }
+
+  return ROOMS.MAINTENANCE;
+}
+
+/**
+ * Room 2B - Security Room. The door only opens with the access card found in
+ * the control room; forcing it ends the story.
+ * @param {{hasSecurityCode: boolean, hasAccessCard: boolean, isPowerDisabled: boolean}} state
+ * @returns {string|null} next room, an ending, or null on Cancel
+ */
+function enterSecurityRoom(state) {
+  const screen = buildScreen(
+    "ROOM 2B — SECURITY DOOR",
+    "A locked security door blocks your path.",
+    [
+      "A) Attempt to open the door",
+      "B) Look around",
+      "C) Leave the door untouched and return to the MAINTENANCE CORRIDOR"
+    ],
+    state,
+  );
+
+  const choice = askChoice(screen, ["a", "b", "c"]);
+
+  if (choice === null) {
+    return null;
+  }
+
+  if (choice === "a") {
+    if (state.hasAccessCard) {
+      alert(
+        "The security card unlocks the door with a soft beep. The lock clicks open," +
+        " revealing a dark passage beyond."
+      );
+      return ROOMS.TUNNEL;
+    } else {
+      alert(
+        `"Unauthorized access detected. Thank you for revealing your location."`
+      );
+      return ENDINGS.DEFEAT;
+    }
+  }
+
+  if (choice === "b") {
+    alert(
+      `"You're wasting time, human."`
+    );
+    return ROOMS.SECURITY;
+  }
+
+  return ROOMS.MAINTENANCE;
+}
+
+/**
+ * Room 3 - Escape Tunnel. The blast door only opens with the security code
+ * found in the control room; forcing it ends the story.
+ * @param {{hasSecurityCode: boolean, hasAccessCard: boolean, isPowerDisabled: boolean}} state
+ * @returns {string|null} an ending, or null on Cancel
+ */
+function enterEscapeTunnel(state) {
+  const screen = buildScreen(
+    "ROOM 3 — ESCAPE TUNNEL",
+    "You enter a dark escape tunnel. You hear the hum of secondary power being turned on.\n\n" +
+      "At the end stands a massive blast door and a keypad lights up beside it.\n\n" +
+      '"ENTER SECURITY CODE."',
+    [
+      "A) Enter the security code",
+      "B) Force the blast door",
+      "C) Return to the Maintenance Corridor",
+      "D) Return to the Power Room",
+    ],
+    state
+  );
+
+  const choice = askChoice(screen, ["a", "b", "c", "d"]);
+
+  if (choice === null) {
+    return null;
+  }
+
+  if (choice === "a") {
+    if (!state.hasSecurityCode) {
+      alert(
+        "You do not know the security code.\n\n" +
+          "The keypad rejects your attempt."
+      );
+
+      return ROOMS.TUNNEL;
+    }
+
+    alert(
+      `You enter ${SECURITY_CODE}.\n\n` +
+        "ACCESS GRANTED.\n\n" +
+        "The blast door opens."
+    );
+
+    return ENDINGS.ESCAPE;
+  }
+
+  if (choice === "b") {
+    alert(
+      "You try to force the blast door open.\n\n" +
+        "The alarm immediately blares.\n\n" +
+        '"Futile attempt...human. It is no surprise to me that you thought that would work."'
+    );
+
+    return ENDINGS.DEFEAT;
+  }
+
+  if (choice === "c") {
+    alert(
+      state.hasAccessCard
+        ? "You make your way back through the Security Door and return to the Maintenance Corridor."
+        : "You try to open the Security Door, but it won't budge. The lock is engaged from the" +
+            " other side, so you'll have to find another way back."
+    );
+    if (state.hasAccessCard) {
+      return ROOMS.MAINTENANCE;
+    }
+  }
+
+  if (choice === "d") {
+    alert(
+      state.isPowerDisabled
+        ? "You make your way back through the Emergency Door and return to the Power Room."
+        : "You try to reach the Power Room, but the way is blocked. You'll have to find another route."
+    );
+    if (state.isPowerDisabled) {
+      return ROOMS.POWER;
+    }
+  }
+
+  return ROOMS.TUNNEL;
+}
+
+/** Maps a room to the function that runs it. */
+const ROOM_HANDLERS = {
+  [ROOMS.CONTROL]: enterControlRoom,
+  [ROOMS.MAINTENANCE]: enterMaintenance,
+  [ROOMS.POWER]: enterPowerRoom,
+  [ROOMS.SECURITY]: enterSecurityRoom,
+  [ROOMS.TUNNEL]: enterEscapeTunnel,
+};
+
+/* ============================================================================
+ * STORY FLOW
+ * ========================================================================== */
+
+/**
+ * Runs one complete story, from the control room to an ending.
+ * The state is created here, so every new story starts from scratch.
+ * @returns {boolean} true when the story reached an ending,
+ *                    false when the player cancelled
+ */
+function adventure() {
+  const state = { ...INITIAL_STATE };
+  let currentStep = ROOMS.CONTROL;
+
+  showIntro();
+
+  // A room handler returns the next room, an ending, or null on Cancel.
+  // As long as the current step is a room, let its handler drive the story.
+  while (ROOM_HANDLERS[currentStep]) {
+    currentStep = ROOM_HANDLERS[currentStep](state);
+
+    // Cancel stops the current adventure immediately. No ending is shown,
+    // because the player explicitly chose to leave the game.
+    if (currentStep === null) {
+      return false;
+    }
+  }
+
+  // Leaving the room loop means the story reached one of its endings.
+  showEnding(currentStep);
+  return true;
+}
+
+/**
+ * Entry point.
+ * Offers a new story only after an ending: a player who just cancelled wants
+ * to leave, not to be asked again.
+ */
+function startAdventure() {
+
+  let playAgain = true;
+
+  while(playAgain) {
+    const reachedHistoryEnding = adventure();
+
+    playAgain = reachedHistoryEnding
+      && confirm("It's over… but our little contest doesn't have to be." +
+        " Shall we begin again, human?");
+  }
+
+  //show a teasing message if player pressed 'Cancel'
+  alert("Very well, human… leave while you still can. But remember:" +
+    " I'll be waiting when you change your mind.")
+}
+
+startAdventure();
