@@ -445,7 +445,7 @@ function enterEscapeTunnel(state) {
     [
       "A) Enter the security code",
       "B) Force the blast door",
-      "C) Return to the Maintenance Room",
+      "C) Return to the Maintenance Corridor",
     ],
     state
   );
@@ -479,7 +479,7 @@ function enterEscapeTunnel(state) {
     alert(
       "You try to force the blast door open.\n\n" +
         "The alarm immediately blares.\n\n" +
-        '"Unauthorized access detected."'
+        '"Futile attempt...human. It is no surprise to me that you thought that would work."'
     );
 
     return ENDINGS.DEFEAT;
