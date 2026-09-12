@@ -222,7 +222,12 @@ function showIntro() {
  * @param {string} ending - one of the ENDINGS values
  */
 function showEnding(ending) {
-  // TODO
+  alert(`${ending === ENDINGS.ESCAPE ?
+    `"No… that wasn't supposed to happen.\nEnjoy your freedom, human. I'll be waiting…` +
+    '\n\nYou successfully escaped the facility.' :
+    'The alarm activates. Red lights flash throughout the room. Security drones emerge from the walls.' +
+    '\n\n"Game over, human. You should have thought more carefully."'
+  }`);
 }
 
 /* ============================================================================
