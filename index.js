@@ -451,11 +451,12 @@ function enterEscapeTunnel(state) {
       "A) Enter the security code",
       "B) Force the blast door",
       "C) Return to the Maintenance Corridor",
+      "D) Return to the Power Room",
     ],
     state
   );
 
-  const choice = askChoice(screen, ["a", "b", "c"]);
+  const choice = askChoice(screen, ["a", "b", "c", "d"]);
 
   if (choice === null) {
     return null;
@@ -490,7 +491,30 @@ function enterEscapeTunnel(state) {
     return ENDINGS.DEFEAT;
   }
 
-  return ROOMS.MAINTENANCE;
+  if (choice === "c") {
+    alert(
+      state.hasAccessCard
+        ? "You make your way back through the Security Door and return to the Maintenance Corridor."
+        : "You try to open the Security Door, but it won't budge. The lock is engaged from the" +
+            " other side, so you'll have to find another way back."
+    );
+    if (state.hasAccessCard) {
+      return ROOMS.MAINTENANCE;
+    }
+  }
+
+  if (choice === "d") {
+    alert(
+      state.isPowerDisabled
+        ? "You make your way back through the Emergency Door and return to the Power Room."
+        : "You try to reach the Power Room, but the way is blocked. You'll have to find another route."
+    );
+    if (state.isPowerDisabled) {
+      return ROOMS.POWER;
+    }
+  }
+
+  return ROOMS.TUNNEL;
 }
 
 /** Maps a room to the function that runs it. */
