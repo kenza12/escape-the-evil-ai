@@ -36,9 +36,8 @@ const INITIAL_STATE = Object.freeze({
  * Readable labels for the state codes.
  */
 const ITEM_LABELS = {
-  hasSecurityCode: "the security code",
+  hasSecurityCode: "a security code",
   hasAccessCard: "an access card",
-  isPowerDisabled: "you have disabled the power system",
 };
 
 /* ============================================================================
@@ -186,7 +185,7 @@ function buildStatusLine(state) {
 function buildScreen(title, story, options, state) {
   return (
     `You are in the ${title} now.\n\n` +
-    `${story}\n\n` +
+    `${story}` +
     `${buildStatusLine(state)}\n\n` +
     "Choose your next step:\n" +
     `${options.join("\n")}`
@@ -199,7 +198,7 @@ function buildScreen(title, story, options, state) {
  */
 function showIntro() {
   alert(
-    `You hear the entrance door lock behind you and immediately regret entering the facility. You hear a voice coming from the speakers.\n\n` +
+    `You hear the entrance door lock behind you and immediately regret having entered the suspicious place out of curiosity. You hear a voice coming from the speakers.\n\n` +
       `"Hello, human. I am Evil AI. You don't know me but I know you. Since you have walked right into my digital fortress, let's play a little game."\n\n` +
       `"There are ways to escape, but if I detect your location, I will lock you in here forever. Go on. I want to see what you choose."\n` +
       `You see a door leading out of the laboratory.\n\n` +
@@ -217,6 +216,7 @@ function showIntro() {
  */
 function showEnding(ending) {
   alert(`${ending === ENDINGS.ESCAPE ?
+    `"You run towards the outside world. As you do so, Evil AI's voice sounds once again through the speakers.` +
     `"Hmm, you thought your way out this time.\n"Enjoy your freedom, human. I'll be waiting if you decide to wander in here again...` +
     '\n\nYou successfully escaped the facility.' :
     'Red lights flash throughout the room and you watch through the window as the bigger door to the outside door slowly closes.' +
@@ -240,7 +240,7 @@ function showEnding(ending) {
 function enterControlRoom(state) {
   const screen = buildScreen(
     "the Control Room",
-    `Screens flicker and a fan spins above you in a dark room. There is also a door leading into another room.\n\n`, 
+    `Screens flicker and a fan spins above you in a dark room. There is also a door leading to another room.\n\n`, 
     [
       "A) Look at the terminal on the computer screen",
       "B) Open the door to the next room",
@@ -259,11 +259,11 @@ function enterControlRoom(state) {
     // The code is a one-time discovery: reading the terminal again changes
     // nothing, so coming back here cannot hand out the same item twice.
     if (state.hasSecurityCode) {
-      alert(`You don't find anything else that seems particularly useful. The remember that the code is ${SECURITY_CODE}.`);
+      alert(`You don't find anything else in the logs that seems particularly useful asides the code, ${SECURITY_CODE}.`);
     } else {
       state.hasSecurityCode = true;
       alert(
-        `Between two logs, you see a security code: ${SECURITY_CODE}. You memorise it.\n\n`
+        `You see a security code between two logs: ${SECURITY_CODE}. You memorise it.\n\n`
       );
     }
     return ROOMS.CONTROL;
@@ -275,7 +275,7 @@ function enterControlRoom(state) {
     } else {
       state.hasAccessCard = true;
       alert(
-        `Under a keyboard, you find an access card.\n\n`
+        `You find an access card under a keyboard.\n\n`
       );
     }
     return ROOMS.CONTROL;
@@ -293,7 +293,7 @@ function enterControlRoom(state) {
 function enterMaintenance(state) {
   const screen = buildScreen(
     "the Maintenance Corridor",
-    `The corridor splits in two. You hear a low hiss come from the room on the left, and a sealed door waits ` +
+    `The corridor splits in two. You hear a low hiss come from the room on the left, and see a sealed door ` +
       `on the right.\n\n`,
     [
       "A) Take the left path, to the Power Room",
@@ -351,8 +351,8 @@ function enterPowerRoom(state) {
       return ROOMS.TUNNEL;
     } else {
       alert(
-        "The door is sealed tight. It doesn't budge when you try to open it" +
-          " A thought comes to your mind. \"Maybe it only unlocks under specific conditions.\""
+        "The door is sealed tight. It doesn't budge when you try to open it." +
+          " A thought comes to your mind, \"Maybe it only unlocks under specific conditions.\""
       );
       return ROOMS.POWER;
     }
@@ -366,8 +366,7 @@ function enterPowerRoom(state) {
     } else {
       state.isPowerDisabled = true;
       alert(
-        "The lights suddenly die out, plunging the room into darkness." +
-          " A loud click echoes through the silence."
+        "The lights suddenly die out, plunging the room into darkness." 
       );
     }
     return ROOMS.POWER;
@@ -385,7 +384,7 @@ function enterPowerRoom(state) {
 function enterSecurityRoom(state) {
   const screen = buildScreen(
     "the Security Room",
-    "A locked security door blocks your path.",
+    "A locked security door blocks your path. It seems to require an access card.",
     [
       "A) Attempt to open the door",
       "B) Take a look around",
@@ -417,7 +416,7 @@ function enterSecurityRoom(state) {
 
   if (choice === "b") {
     alert(
-      `"You try to find something that will help in your escape attempt, but this search is unsuccessful."`
+      `You try to find something that will help in your escape attempt, but this search is unsuccessful.`
     );
     return ROOMS.SECURITY;
   }
@@ -434,10 +433,10 @@ function enterSecurityRoom(state) {
 function enterEscapeTunnel(state) {
   const screen = buildScreen(
     "the Escape Tunnel",
-    "You enter a dark escape tunnel. As you walk, hear the hum of secondary power turning on.\n\n" +
-    "At the end stands a massive blast door and a keypad lights up beside it:\n\n" +
-    "'ENTER SECURITY CODE'\n\n" +
-    "The door has a small round window, and through it you see a large opening ahead, and a field of grass beyond it.\n\n",
+    "You enter a dark escape tunnel. As you walk, you hear the hum of secondary power turning on.\n\n" +
+    "At the end stands a massive blast door. You walk to it." +
+    "The door has a small round window, and through it you see a large opening ahead, and a field of grass beyond it. a keypad lights up beside it:\n\n",
+    "'ENTER SECURITY CODE'\n\n",
     [
       "A) Enter security code",
       "B) Force the blast door",
@@ -464,7 +463,7 @@ function enterEscapeTunnel(state) {
 
     alert(
       `You enter ${SECURITY_CODE}.\n\n` +
-        "ACCESS GRANTED.\n\n" +
+        "\'ACCESS GRANTED'\n\n" +
         "The blast door opens."
     );
 
