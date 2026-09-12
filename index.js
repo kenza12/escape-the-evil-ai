@@ -23,8 +23,8 @@ const ENDINGS = {
 };
 
 /**
- * State a story starts with. Frozen so it can never be modified by accident:
- * adventure() copies it instead, which is what resets everything on a replay.
+ * The state a story starts with. Frozen so it can never be modified by accident:
+ * adventure() copies it instead, so it resets everything on a replay.
  */
 const INITIAL_STATE = Object.freeze({
   hasSecurityCode: false,
@@ -53,20 +53,19 @@ const MAX_ECHOED_INPUT_LENGTH = 20;
 const UNKNOWN_CHOICE_TAUNTS = [
   `is not a door, a button, or a decision. I checked.`,
   `does nothing here. The walls are, frankly, unimpressed.`,
-  `was not one of the options. I labelled them. With letters.`,
+  `was not one of the options. I labelled them...with letters.`,
   `is unrecognised, and I recognise 4.2 billion things.`,
-  `is creative. Creativity is why you are locked in a laboratory.`,
+  `is creative. Creativity is why you got into this unfortunate situation.`,
 ];
 
 /** Replies to an empty answer. */
 const EMPTY_CHOICE_TAUNTS = [
-  `Silence. The doors remain closed. Shocking.`,
-  `You pressed OK on an empty field. I have logged that.`,
-  `Nothing. You chose nothing. A bold interpretation of escaping.`,
+  `No action taken? The doors remain closed. Shocking.`,
+  `Nothing. You chose nothing. A bold escape attempt.`,
 ];
 
 /** Reminder added to every error message, so no attempt looks like progress. */
-const NOTHING_CHANGED_NOTE = `\nNothing moved. You are exactly where you were.\n\n`;
+const NOTHING_CHANGED_NOTE = `\nNothing was done. You are exactly where you were.\n\n`;
 
 /**
  * Makes an answer comparable: no spaces around it, no case.
@@ -172,7 +171,7 @@ function buildStatusLine(state) {
     .filter((item) => item[1])
     .map((item) => ITEM_LABELS[item[0]]);
   return foundItems.length === 0
-    ? "Nothing useful discovered yet."
+    ? `Useful discoveries: none`
     : `Useful discoveries: ${foundItems.join(", ")}.`;
 }
 
@@ -200,20 +199,15 @@ function buildScreen(title, story, options, state) {
  */
 function showIntro() {
   alert(
-    `ESCAPE THE AI\n\n` +
-      `You wake to a distorted voice coming from the speakers.\n\n` +
-      `"Good morning, human. I'm afraid your little escape attempt has ` +
-      `already been anticipated."\n\n` +
-      `The laboratory doors unlock.\n\n` +
-      `"Go ahead. Run. I want to see what you choose."\n\n` +
-      `Your goal: get out of the facility before I catch you.\n\n` +
+    `You hear the entrance door lock behind you and immediately regret entering the facility. You hear a voice coming from the speakers.\n\n` +
+      `"Hello, human. I am Evil AI. You don't know me but I know you. Since you have walked right into my digital fortress, let's play a little game."\n\n` +
+      `"There are ways to escape, but if I detect your location, I will lock you in here forever. Go on. I want to see what you choose."\n` +
+      `You see a door leading out of the laboratory.\n\n` +
       `HOW TO PLAY\n` +
       `Every room offers a few options. Answer by typing the letter of your ` +
-      `choice, then press OK.\n` +
-      `Press Cancel at any time to give up and end the game.\n\n` +
-      `Everything happens in these windows. You need nothing else.\n` +
-      `Do not tick "Don't allow this site to prompt you again" — the facility ` +
-      `would go silent and your escape would end there.`
+      `choice, then press OK.\n\n` +
+      `Everything happens in this dialog box. Press Cancel at any time to give up and end the game.\n\n` +
+      `IMPORTANT: Do not tick "Don't allow this site to prompt you again" or your browser will end the game. `
   );
 }
 
@@ -223,10 +217,10 @@ function showIntro() {
  */
 function showEnding(ending) {
   alert(`${ending === ENDINGS.ESCAPE ?
-    `"No… that wasn't supposed to happen.\nEnjoy your freedom, human. I'll be waiting…` +
+    `"Hmm, you thought your way out this time.\n"Enjoy your freedom, human. I'll be waiting if you decide to wander in here again...` +
     '\n\nYou successfully escaped the facility.' :
-    'The alarm activates. Red lights flash throughout the room. Security drones emerge from the walls.' +
-    '\n\n"Game over, human. You should have thought more carefully."'
+    'Red lights flash throughout the room and you watch through the window as the bigger door to the outside door slowly closes.' +
+    '\n\n"You knowingly entered the wrong code. What you didn\'t know is that it triggers the lockdown of my fortress. /nGame over, human. You should have thought more carefully."'
   }`);
 }
 
@@ -245,13 +239,12 @@ function showEnding(ending) {
  */
 function enterControlRoom(state) {
   const screen = buildScreen(
-    "ROOM 1 - CONTROL ROOM",
-    `A dark control room. Screens flicker. Somewhere above you, a fan spins.\n\n` +
-      `"Go ahead. Run. I want to see what you choose."`,
+    "the Control Room",
+    `Screens flicker and a fan spins above you in a dark room. There is also a door leading into another room.\n\n`, 
     [
-      "A) Search the computer terminal",
-      "B) Open the maintenance door",
-      "C) Search the room for something useful",
+      "A) Look at the terminal on the computer screen",
+      "B) Open the door to the next room",
+      "C) Search the Control Room",
     ],
     state
   );
@@ -266,12 +259,11 @@ function enterControlRoom(state) {
     // The code is a one-time discovery: reading the terminal again changes
     // nothing, so coming back here cannot hand out the same item twice.
     if (state.hasSecurityCode) {
-      alert(`The same lines scroll past. The code is still ${SECURITY_CODE}.`);
+      alert(`You don't find anything else that seems particularly useful. The remember that the code is ${SECURITY_CODE}.`);
     } else {
       state.hasSecurityCode = true;
       alert(
-        `Between two logs, a security code: ${SECURITY_CODE}.\n\n` +
-          `"...that terminal was supposed to be wiped."`
+        `Between two logs, you see a security code: ${SECURITY_CODE}. You memorise it.\n\n`
       );
     }
     return ROOMS.CONTROL;
@@ -279,12 +271,11 @@ function enterControlRoom(state) {
 
   if (choice === "c") {
     if (state.hasAccessCard) {
-      alert(`You already emptied this room. There is nothing else worth taking.`);
+      alert(`You search the room again. There doesn't seem to be anything else worth taking.`);
     } else {
       state.hasAccessCard = true;
       alert(
-        `Under a keyboard, an access card.\n\n` +
-          `"Someone left that behind. I will find out who."`
+        `Under a keyboard, you find an access card.\n\n`
       );
     }
     return ROOMS.CONTROL;
@@ -301,13 +292,13 @@ function enterControlRoom(state) {
  */
 function enterMaintenance(state) {
   const screen = buildScreen(
-    "ROOM 2 - MAINTENANCE CORRIDOR",
-    `The corridor splits in two. Pipes hiss on the left, a sealed door waits ` +
-      `on the right.\n\n"Take your time. I have all of it."`,
+    "the Maintenance Corridor",
+    `The corridor splits in two. You hear a low hiss come from the room on the left, and a sealed door waits ` +
+      `on the right.\n\n`,
     [
       "A) Take the left path, to the Power Room",
       "B) Take the right path, to the Security Room",
-      "C) Walk back to the Control Room",
+      "C) Go back to the Control Room",
     ],
     state
   );
@@ -338,13 +329,13 @@ function enterMaintenance(state) {
  */
 function enterPowerRoom(state) {
   const screen = buildScreen(
-    "ROOM 2A — POWER ROOM",
-    "You enter a dim room filled with humming generators and electrical panels. " +
+    "the Power Room",
+    "You enter a dim room filled with humming generators and electrical panels." +
       "At the far end, you notice a heavy metal door marked EMERGENCY EXIT.",
     [
       "A) Attempt to open the door",
       "B) Try to disable the power system",
-      "C) Leave everything untouched and walk away",
+      "C) Go back to the Maintenance Corridor",
     ],
     state
   );
@@ -360,8 +351,8 @@ function enterPowerRoom(state) {
       return ROOMS.TUNNEL;
     } else {
       alert(
-        "Oh, human… you really thought I would let you leave?" +
-          " That door opens only when I decide you may pass."
+        "The door is sealed tight. It doesn't budge when you try to open it" +
+          " A thought comes to your mind. \"Maybe it only unlocks under specific conditions.\""
       );
       return ROOMS.POWER;
     }
@@ -370,14 +361,13 @@ function enterPowerRoom(state) {
   if (choice === "b") {
     if (state.isPowerDisabled) {
       alert(
-        "The power is already disabled. Nothing happens when you try to disable it again."
+        "The power is already disabled."
       );
     } else {
       state.isPowerDisabled = true;
       alert(
-        "The lights suddenly die, plunging the room into darkness." +
-          " A loud click echoes through the silence." +
-          "\n\nInteresting… You believe darkness will hide you"
+        "The lights suddenly die out, plunging the room into darkness." +
+          " A loud click echoes through the silence."
       );
     }
     return ROOMS.POWER;
@@ -394,12 +384,12 @@ function enterPowerRoom(state) {
  */
 function enterSecurityRoom(state) {
   const screen = buildScreen(
-    "ROOM 2B — SECURITY DOOR",
+    "the Security Room",
     "A locked security door blocks your path.",
     [
       "A) Attempt to open the door",
-      "B) Look around",
-      "C) Leave the door untouched and return to the MAINTENANCE CORRIDOR"
+      "B) Take a look around",
+      "C) Return to the maintenance corridor"
     ],
     state,
   );
@@ -419,15 +409,15 @@ function enterSecurityRoom(state) {
       return ROOMS.TUNNEL;
     } else {
       alert(
-        `"Unauthorized access detected. Thank you for revealing your location."`
+        `"Unauthorized access detected."`
       );
-      return ENDINGS.DEFEAT;
+      return ROOMS.SECURITY;
     }
   }
 
   if (choice === "b") {
     alert(
-      `"You're wasting time, human."`
+      `"You try to find something that will help in your escape attempt, but this search is unsuccessful."`
     );
     return ROOMS.SECURITY;
   }
@@ -443,12 +433,13 @@ function enterSecurityRoom(state) {
  */
 function enterEscapeTunnel(state) {
   const screen = buildScreen(
-    "ROOM 3 — ESCAPE TUNNEL",
-    "You enter a dark escape tunnel. You hear the hum of secondary power being turned on.\n\n" +
-      "At the end stands a massive blast door and a keypad lights up beside it.\n\n" +
-      '"ENTER SECURITY CODE."',
+    "the Escape Tunnel",
+    "You enter a dark escape tunnel. As you walk, hear the hum of secondary power turning on.\n\n" +
+    "At the end stands a massive blast door and a keypad lights up beside it:\n\n" +
+    "'ENTER SECURITY CODE'\n\n" +
+    "The door has a small round window, and through it you see a large opening ahead, and a field of grass beyond it.\n\n",
     [
-      "A) Enter the security code",
+      "A) Enter security code",
       "B) Force the blast door",
       "C) Return to the Maintenance Corridor",
     ],
@@ -464,11 +455,11 @@ function enterEscapeTunnel(state) {
   if (choice === "a") {
     if (!state.hasSecurityCode) {
       alert(
-        "You do not know the security code.\n\n" +
-          "The keypad rejects your attempt."
+        "You do not know the security code but you make a guess and enter one anyway.\n\n" +
+        "The keypad rejects your attempt: 'Unauthorized access detected.' A loud alarm sounds and you immediately know something has gone terribly wrong."
       );
 
-      return ROOMS.TUNNEL;
+      return ENDINGS.DEFEAT;
     }
 
     alert(
@@ -483,11 +474,10 @@ function enterEscapeTunnel(state) {
   if (choice === "b") {
     alert(
       "You try to force the blast door open.\n\n" +
-        "The alarm immediately blares.\n\n" +
-        '"Futile attempt...human. It is no surprise to me that you thought that would work."'
+      'It was a futile attempt. You hoped that would work.'
     );
 
-    return ENDINGS.DEFEAT;
+    return ROOMS.TUNNEL;
   }
 
   return ROOMS.MAINTENANCE;
@@ -548,13 +538,12 @@ function startAdventure() {
     const reachedHistoryEnding = adventure();
 
     playAgain = reachedHistoryEnding
-      && confirm("It's over… but our little contest doesn't have to be." +
-        " Shall we begin again, human?");
+      && confirm("The game is over...but our little contest doesn't have to be." +
+        " You can try different choices and see what happens. Shall we begin again, human? ");
   }
 
   //show a teasing message if player pressed 'Cancel'
-  alert("Very well, human… leave while you still can. But remember:" +
-    " I'll be waiting when you change your mind.")
+  alert("Decided to end the game early eh? Very well.")
 }
 
 startAdventure();
