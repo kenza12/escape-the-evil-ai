@@ -437,8 +437,55 @@ function enterSecurityRoom(state) {
  * @returns {string|null} an ending, or null on Cancel
  */
 function enterEscapeTunnel(state) {
-  // TODO
-  return null;
+  const screen = buildScreen(
+    "ROOM 3 — ESCAPE TUNNEL",
+    "You enter a dark escape tunnel. You hear the hum of secondary power being turned on.\n\n" +
+      "At the end stands a massive blast door and a keypad lights up beside it.\n\n" +
+      '"ENTER SECURITY CODE."',
+    [
+      "A) Enter the security code",
+      "B) Force the blast door",
+      "C) Return to the Maintenance Room",
+    ],
+    state
+  );
+
+  const choice = askChoice(screen, ["a", "b", "c"]);
+
+  if (choice === null) {
+    return null;
+  }
+
+  if (choice === "a") {
+    if (!state.hasSecurityCode) {
+      alert(
+        "You do not know the security code.\n\n" +
+          "The keypad rejects your attempt."
+      );
+
+      return ROOMS.TUNNEL;
+    }
+
+    alert(
+      `You enter ${SECURITY_CODE}.\n\n` +
+        "ACCESS GRANTED.\n\n" +
+        "The blast door opens."
+    );
+
+    return ENDINGS.ESCAPE;
+  }
+
+  if (choice === "b") {
+    alert(
+      "You try to force the blast door open.\n\n" +
+        "The alarm immediately blares.\n\n" +
+        '"Unauthorized access detected."'
+    );
+
+    return ENDINGS.DEFEAT;
+  }
+
+  return ROOMS.MAINTENANCE;
 }
 
 /** Maps a room to the function that runs it. */
